@@ -4,7 +4,7 @@ Node JS module and cli command for easily deploying to AWS S3.
 
 ## Installation
 
-`npm install s3-easy-deploy`
+`npm install s3-simple-deploy`
 
 ## How it works
 
@@ -30,7 +30,7 @@ Simply add the following to your `package.json` file and run `npm run deploy` to
   ...
   "scfripts": {
     ...
-    "deploy": "s3-easy-deploy --public-root ./dist --bucket magic-bucket-name"
+    "deploy": "s3-simple-deploy --public-root ./dist --bucket magic-bucket-name"
   }
 }
 ```
@@ -38,7 +38,7 @@ Simply add the following to your `package.json` file and run `npm run deploy` to
 ### Within node script
 
 ```
-var s3EasyDeploy = require('s3-easy-deploy');
+var s3EasyDeploy = require('s3-simple-deploy');
 
 // with callback
 s3EasyDeploy.deploy({
@@ -96,12 +96,12 @@ s3EasyDeploy.deploy({
 * `metadata`: (optional) Additional metadata to set ([{ match: RegExp, tags: { key: value } }])
 
 
-### With command `s3-easy-deploy`
+### With command `s3-simple-deploy`
 
-`s3-easy-deploy --help`:
+`s3-simple-deploy --help`:
 
 ```
-  Usage: s3-easy-deploy [options]
+  Usage: s3-simple-deploy [options]
 
   Options:
 
@@ -117,6 +117,6 @@ s3EasyDeploy.deploy({
 ```
 
 Example usage:
-`s3-easy-deploy --public-root ./public --bucket magic-bucket-name --acl public-read`
+`s3-simple-deploy --public-root ./public --bucket magic-bucket-name --acl public-read`
 or specify a config file
-`s3-easy-deploy deploy-config.json`
+`s3-simple-deploy deploy-config.json`
