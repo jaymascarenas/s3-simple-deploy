@@ -90,6 +90,7 @@ s3EasyDeploy.deploy({
 * `publicRoot`: The path to the directory you want to deploy to s3
 * `bucket`: The s3 bucket name to deploy to
 * `acl`: (optional) [Canned s3 policy](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html) to use (e.g. 'private', 'public-read'). Defaults to "public-read".
+* `cacheControl`: (optional) Sets the CacheControl Header.
 * `cloudFrontId`: (optional) The CloudFront distribution id to invalidate.
 * `concurrentRequests`: The number of uploads to process concurrently. Defaults to 10.
 * `putObjectParams`: (optional) Additional params to pass to [S3 putObject](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#putObject-property) call (e.g. headers to set on uploaded files) ([{ match: RegExp, tags: { key: value } }])
@@ -112,6 +113,7 @@ s3EasyDeploy.deploy({
     --public-root <publicRoot>                  The path of the folder to deploy
     --bucket <bucket>                           The S3 bucket name
     --acl <acl>                                 The ACL policy. Defaults to public-read
+    --cacheControl                              The CacheControl value
     --cloud-front-id <cloudFrontDistributionId> The CloudFront distribution id
     --concurrent-requests <concurrentRequests>  The number of uploads to send at the same time. Defaults to 10
 ```
