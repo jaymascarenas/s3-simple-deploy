@@ -1,4 +1,4 @@
-# S3 Easy Deploy
+# S3 Simple Deploy
 
 Node JS module and cli command for easily deploying to AWS S3.
 
@@ -38,10 +38,10 @@ Simply add the following to your `package.json` file and run `npm run deploy` to
 ### Within node script
 
 ```
-var s3EasyDeploy = require('s3-simple-deploy');
+var s3SimpleDeploy = require('s3-simple-deploy');
 
 // with callback
-s3EasyDeploy.deploy({
+s3SimpleDeploy.deploy({
   publicRoot: './release',
   bucket: 'magic-bucket-name',
   acl: 'private'
@@ -50,7 +50,7 @@ s3EasyDeploy.deploy({
 });
 
 // with promise
-s3EasyDeploy.deploy({
+s3SimpleDeploy.deploy({
   publicRoot: './release',
   bucket: 'magic-bucket-name',
   acl: 'private'
@@ -61,7 +61,7 @@ s3EasyDeploy.deploy({
 });
 
 // with additional headers and metadata
-s3EasyDeploy.deploy({
+s3SimpleDeploy.deploy({
   publicRoot: './release',
   bucket: 'magic-bucket-name',
   acl: 'private',

@@ -3,7 +3,7 @@
 
 const version = require('./package.json').version;
 const program = require('commander');
-const s3EasyDeploy = require('./index.js');
+const s3SimpleDeploy = require('./index.js');
 require('colors');
 
 program
@@ -53,4 +53,4 @@ optionsToCheck.forEach(function(option) {
   settings[option] = program[option] || settings[option];
 });
 
-s3EasyDeploy.deploy(settings);
+s3SimpleDeploy.deploy(settings);
