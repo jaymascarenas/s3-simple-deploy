@@ -105,7 +105,7 @@ function getFiles() {
         const body = Fs.readFileSync(Path.join(config.publicRoot, f));
         return  {
           body: body,
-          type: Mime.getType(f),
+          type: Mime.lookup(f),
           md5: Crypto.createHash('md5').update(body).digest('hex'),
           path: Path.parse(f),
           extraHeaders,
