@@ -139,9 +139,11 @@ function getFiles() {
 
 function checkIfUploadRequired(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
+  console.log("🚀 ~ key:", key);
   const splitBucket = config.bucket.split("/");
   const validBucketName = splitBucket[0];
   const stagingFolder = splitBucket.slice(1).join("/");
+  console.log("🚀 ~ stagingFolder:", stagingFolder);
 
   const params = {
     Bucket: validBucketName,
@@ -167,9 +169,11 @@ function checkIfUploadRequired(file, callback) {
 
 function uploadFile(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
+  console.log("🚀 ~ key:", key);
   const splitBucket = config.bucket.split("/");
   const validBucketName = splitBucket[0];
   const stagingFolder = splitBucket.slice(1).join("/");
+  console.log("🚀 ~ stagingFolder:", stagingFolder);
 
   const params = {
     ...file.extraHeaders,
