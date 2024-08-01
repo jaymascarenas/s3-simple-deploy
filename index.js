@@ -139,10 +139,13 @@ function getFiles() {
 
 function checkIfUploadRequired(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
+  const splitBucket = config.bucket.split("/");
+  const validBucketName = splitBucket[0];
+  const stagingFolder = splitBucket.slice(1).join("/");
 
   const params = {
-    Bucket: config.bucket,
-    Key: key,
+    Bucket: validBucketName,
+    Key: `${stagingFolder}/${key}`,
   };
 
   const command = new HeadObjectCommand(params);
@@ -164,11 +167,14 @@ function checkIfUploadRequired(file, callback) {
 
 function uploadFile(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
+  const splitBucket = config.bucket.split("/");
+  const validBucketName = splitBucket[0];
+  const stagingFolder = splitBucket.slice(1).join("/");
 
   const params = {
     ...file.extraHeaders,
-    Bucket: config.bucket,
-    Key: key,
+    Bucket: validBucketName,
+    Key: `${stagingFolder}/${key}`,
     ACL: config.acl,
     Body: file.body,
     CacheControl: config.cacheControl,
