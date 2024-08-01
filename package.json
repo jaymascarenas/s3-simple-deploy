@@ -1,6 +1,6 @@
 {
   "name": "s3-simple-deploy",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Simple S3 Deploy",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,8 @@
   "author": "Jay Mascarenas",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "^3.621.0",
+    "@aws-sdk/client-s3": "^3.621.0",
     "async": "^2.6.3",
     "aws": "0.0.3-2",
     "aws-sdk": "^2.4.7",
