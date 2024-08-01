@@ -139,11 +139,9 @@ function getFiles() {
 
 function checkIfUploadRequired(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
-  console.log("🚀 ~ key:", key);
   const splitBucket = config.bucket.split("/");
   const validBucketName = splitBucket[0];
   const stagingFolder = splitBucket.slice(1).join("/");
-  console.log("🚀 ~ stagingFolder:", stagingFolder);
 
   const params = {
     Bucket: validBucketName,
@@ -160,6 +158,7 @@ function checkIfUploadRequired(file, callback) {
       callback(null, true);
     })
     .catch((err) => {
+      console.log(chalk.red("Error checking if upload is required:", err));
       if (err.name === "NotFound") {
         return callback(null, true);
       }
@@ -169,11 +168,9 @@ function checkIfUploadRequired(file, callback) {
 
 function uploadFile(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
-  console.log("🚀 ~ key:", key);
   const splitBucket = config.bucket.split("/");
   const validBucketName = splitBucket[0];
   const stagingFolder = splitBucket.slice(1).join("/");
-  console.log("🚀 ~ stagingFolder:", stagingFolder);
 
   const params = {
     ...file.extraHeaders,
@@ -208,6 +205,7 @@ function uploadFiles(files) {
   const processFile = (file, callback) => {
     checkIfUploadRequired(file, (err, required) => {
       if (err) {
+        console.log(chalk.red("Error checking if upload is required:", err));
         return callback(err);
       }
       if (required) {
@@ -222,6 +220,7 @@ function uploadFiles(files) {
   return new Promise((resolve, reject) => {
     Async.eachLimit(files, config.concurrentRequests, processFile, (err) => {
       if (err) {
+        console.log(chalk.red("Error during file upload:", err));
         return reject(err);
       }
       console.log("\n");
@@ -274,6 +273,7 @@ function createInvalidation() {
         resolve();
       })
       .catch((err) => {
+        console.log(chalk.red("Error creating CloudFront invalidation:", err));
         reject(err);
       });
   });
