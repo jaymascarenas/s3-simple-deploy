@@ -139,9 +139,10 @@ function getFiles() {
 
 function checkIfUploadRequired(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
+  const validBucketName = config.bucket.split("/")[0];
 
   const params = {
-    Bucket: config.bucket,
+    Bucket: validBucketName,
     Key: key,
   };
 
@@ -164,10 +165,11 @@ function checkIfUploadRequired(file, callback) {
 
 function uploadFile(file, callback) {
   const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
+  const validBucketName = config.bucket.split("/")[0];
 
   const params = {
     ...file.extraHeaders,
-    Bucket: config.bucket,
+    Bucket: validBucketName,
     Key: key,
     ACL: config.acl,
     Body: file.body,
