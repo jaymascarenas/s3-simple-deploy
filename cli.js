@@ -10,6 +10,9 @@ program
   .version(version)
   .option('-c, --config <configFile>', 'A config file')
   .option('--region <region>', 'The S3 region. Defaults to us-east-1')
+  .option('--profile <profile>', 'The AWS profile to use for credentials')
+  .option('--access-key-id <accessKeyId>', 'AWS Access Key ID')
+  .option('--secret-access-key <secretAccessKey>', 'AWS Secret Access Key')
   .option('--public-root <publicRoot>', 'The path of the folder to deploy')
   .option('--bucket <bucket>', 'The S3 bucket name')
   .option('--acl <acl>', 'The Access Control List policy')
@@ -36,6 +39,9 @@ if (program.config) {
 
 var optionsToCheck = [
   'region',
+  'profile',
+  'accessKeyId',
+  'secretAccessKey',
   'publicRoot',
   'bucket',
   'acl',
@@ -48,4 +54,4 @@ optionsToCheck.forEach(function(option) {
   settings[option] = program[option] || settings[option];
 });
 
-s3EasyDeploy.deploy(settings).catch(() => {});
+s3SimpleDeploy.deploy(settings).catch(() => {});

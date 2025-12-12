@@ -1,25 +1,26 @@
-"use strict";
+'use strict';
 
-const readline = require("readline");
-const Async = require("async");
-const Crypto = require("crypto");
-const chalk = require("chalk");
-const Fs = require("fs");
-const Glob = require("glob");
-const Mime = require("mime");
-const Path = require("path");
+const readline = require('readline');
+const Async = require('async');
+const Crypto = require('crypto');
+const chalk = require('chalk');
+const Fs = require('fs');
+const Glob = require('glob');
+const Mime = require('mime');
+const Path = require('path');
 const {
   CloudFrontClient,
   CreateInvalidationCommand,
-} = require("@aws-sdk/client-cloudfront");
+} = require('@aws-sdk/client-cloudfront');
+const { fromIni } = require('@aws-sdk/credential-providers');
 
 const {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
-} = require("@aws-sdk/client-s3");
+} = require('@aws-sdk/client-s3');
 
-require("colors");
+require('colors');
 
 let config, s3, cloudfront;
 
@@ -39,12 +40,12 @@ module.exports.deploy = (options, callback) => {
         )
       );
       if (callback) {
-        return callback(null, "");
+        return callback(null, '');
       }
-      return Promise.resolve("");
+      return Promise.resolve('');
     })
     .catch((error) => {
-      console.error(("error: " + error).red);
+      console.error(('error: ' + error).red);
       if (callback) {
         return callback(error);
       }
@@ -55,25 +56,48 @@ module.exports.deploy = (options, callback) => {
 function setup(options) {
   config = options;
 
-  const region = config.region || "us-east-1";
+  const region = config.region || 'us-east-1';
 
   if (!config.publicRoot) {
-    return Promise.reject("Must specify publicRoot");
+    return Promise.reject('Must specify publicRoot');
   }
 
   if (!config.bucket) {
-    return Promise.reject("Must specify bucket");
+    return Promise.reject('Must specify bucket');
   }
 
   if (!config.acl) {
-    config.acl = "public-read";
+    config.acl = 'public-read';
   }
 
   config.concurrentRequests = config.concurrentRequests || 10;
 
-  s3 = new S3Client({ region });
+  // Configure AWS client options
+  const clientConfig = { region };
 
-  cloudfront = new CloudFrontClient({ region });
+  // Priority order for credentials:
+  // 1. Explicit credentials (accessKeyId + secretAccessKey)
+  // 2. Profile credentials
+  // 3. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+  // 4. Other AWS credential chain methods
+
+  if (config.accessKeyId && config.secretAccessKey) {
+    // Use explicit credentials
+    clientConfig.credentials = {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    };
+  } else if (config.profile) {
+    // Use profile credentials
+    clientConfig.credentials = fromIni({ profile: config.profile });
+  } else {
+    // If neither explicit credentials nor profile is specified,
+    // AWS SDK will use the default credential chain (environment variables, etc.)
+    console.log('No Profile or Access Key Found, using default profile');
+  }
+  s3 = new S3Client(clientConfig);
+
+  cloudfront = new CloudFrontClient(clientConfig);
 
   return Promise.resolve();
 }
@@ -84,7 +108,7 @@ function startDeploy() {
 
 function getFiles() {
   return new Promise((resolve, reject) => {
-    new Glob("**/*.*", { cwd: config.publicRoot }, (err, files) => {
+    new Glob('**/*.*', { cwd: config.publicRoot }, (err, files) => {
       if (err) {
         return reject(err);
       }
@@ -106,7 +130,7 @@ function getFiles() {
                   Object.assign(extraHeaders, h.tags);
                 }
               } catch (e) {
-                console.error("Error with additional putObject parameters", e);
+                console.error('Error with additional putObject parameters', e);
               }
             });
           }
@@ -118,7 +142,7 @@ function getFiles() {
                   Object.assign(extraMetadata, m.tags);
                 }
               } catch (e) {
-                console.error("Error with metadata", e);
+                console.error('Error with metadata', e);
               }
             });
           }
@@ -126,7 +150,7 @@ function getFiles() {
           return {
             body: body,
             type: Mime.lookup(f),
-            md5: Crypto.createHash("md5").update(body).digest("hex"),
+            md5: Crypto.createHash('md5').update(body).digest('hex'),
             path: Path.parse(f),
             extraHeaders,
             extraMetadata,
@@ -138,10 +162,10 @@ function getFiles() {
 }
 
 function checkIfUploadRequired(file, callback) {
-  const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
-  const splitBucket = config.bucket.split("/");
+  const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, '/');
+  const splitBucket = config.bucket.split('/');
   const validBucketName = splitBucket[0];
-  const stagingFolder = splitBucket.slice(1).join("/");
+  const stagingFolder = splitBucket.slice(1).join('/');
 
   const params = {
     Bucket: validBucketName,
@@ -152,25 +176,26 @@ function checkIfUploadRequired(file, callback) {
 
   s3.send(command)
     .then((data) => {
-      if (data.Metadata && data.Metadata["content-md5"] === file.md5) {
+      if (data.Metadata && data.Metadata['content-md5'] === file.md5) {
         return callback(null, false);
       }
       callback(null, true);
     })
     .catch((err) => {
-      console.log(chalk.red("Error checking if upload is required:", err));
-      if (err.name === "NotFound") {
+      if (err.name === 'NotFound') {
         return callback(null, true);
+      } else {
+        console.log(chalk.red('Error checking if upload is required:', err));
       }
       callback(err);
     });
 }
 
 function uploadFile(file, callback) {
-  const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, "/");
-  const splitBucket = config.bucket.split("/");
+  const key = Path.join(file.path.dir, file.path.base).replace(/\\/g, '/');
+  const splitBucket = config.bucket.split('/');
   const validBucketName = splitBucket[0];
-  const stagingFolder = splitBucket.slice(1).join("/");
+  const stagingFolder = splitBucket.slice(1).join('/');
 
   const params = {
     ...file.extraHeaders,
@@ -182,7 +207,7 @@ function uploadFile(file, callback) {
     ContentType: file.type,
     Metadata: {
       ...file.extraMetadata,
-      "Content-MD5": file.md5,
+      'Content-MD5': file.md5,
     },
   };
 
@@ -191,7 +216,7 @@ function uploadFile(file, callback) {
   s3.send(command)
     .then(() => {
       status.uploaded++;
-      printProgress("Uploaded", `${file.path.dir}/${file.path.base}`);
+      printProgress('Uploaded', `${file.path.dir}/${file.path.base}`);
       callback(null);
     })
     .catch((err) => {
@@ -205,14 +230,20 @@ function uploadFiles(files) {
   const processFile = (file, callback) => {
     checkIfUploadRequired(file, (err, required) => {
       if (err) {
-        console.log(chalk.red("Error checking if upload is required:", err));
+        console.log(chalk.red('Error checking if upload is required:', err));
         return callback(err);
       }
       if (required) {
-        return uploadFile(file, callback);
+        return uploadFile(file, (uploadErr) => {
+          if (uploadErr) {
+            console.log(chalk.red('uploadFile failed for', file.path.base));
+            return callback(uploadErr);
+          }
+          return callback();
+        });
       }
       status.skipped++;
-      printProgress("Skipped", file.path.dir + "/" + file.path.base);
+      printProgress('Skipped', file.path.dir + '/' + file.path.base);
       return callback();
     });
   };
@@ -220,10 +251,13 @@ function uploadFiles(files) {
   return new Promise((resolve, reject) => {
     Async.eachLimit(files, config.concurrentRequests, processFile, (err) => {
       if (err) {
-        console.log(chalk.red("Error during file upload:", err));
+        console.log(
+          chalk.red('Error during file upload:'),
+          JSON.stringify(err, null, 2)
+        );
         return reject(err);
       }
-      console.log("\n");
+      console.log('\n');
       resolve();
     });
   });
@@ -233,18 +267,18 @@ function printProgress(action, file) {
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
   process.stdout.write(
-    "\r" +
+    '\r' +
       status.uploaded +
-      " uploaded / " +
+      ' uploaded / ' +
       status.skipped +
-      " skipped / " +
+      ' skipped / ' +
       status.total +
-      " total --- " +
+      ' total --- ' +
       (((status.uploaded + status.skipped) / status.total) * 100).toFixed(2) +
-      "% complete" +
-      " --- " +
+      '% complete' +
+      ' --- ' +
       action +
-      " " +
+      ' ' +
       file
   );
 }
@@ -254,14 +288,14 @@ function createInvalidation() {
     if (!config.cloudFrontId) {
       return resolve();
     }
-    console.log("\nCreating CloudFront invalidation...");
+    console.log('\nCreating CloudFront invalidation...');
     const params = {
       DistributionId: config.cloudFrontId,
       InvalidationBatch: {
         CallerReference: new Date().toISOString(),
         Paths: {
           Quantity: 1,
-          Items: ["/*"],
+          Items: ['/*'],
         },
       },
     };
@@ -273,7 +307,7 @@ function createInvalidation() {
         resolve();
       })
       .catch((err) => {
-        console.log(chalk.red("Error creating CloudFront invalidation:", err));
+        console.log(chalk.red('Error creating CloudFront invalidation:', err));
         reject(err);
       });
   });
