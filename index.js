@@ -102,8 +102,34 @@ function setup(options) {
   return Promise.resolve();
 }
 
-function startDeploy() {
-  return getFiles().then(uploadFiles).then(createInvalidation);
+async function startDeploy() {
+  try {
+    console.log('🚀 Starting deployment');
+
+    console.log('📦 Gathering files...');
+    const files = await getFiles();
+    console.log(`📦 Found ${files.length} files`);
+
+    console.log('⬆️ Uploading files...');
+    await uploadFiles(files);
+    console.log('⬆️ Upload completed');
+
+    console.log('🧹 Creating CloudFront invalidation...');
+    await createInvalidation();
+    console.log('🧹 Invalidation completed');
+
+    console.log('✅ Deployment finished successfully');
+  } catch (err) {
+    console.error('❌ Deployment failed', {
+      stage: err?._phase ?? 'unknown',
+      message: err?.message,
+      errorName: err?.name,
+      metadata: err?.$metadata,
+    });
+
+    // Preserve original stack + error for CI / callers
+    throw err;
+  }
 }
 
 function getFiles() {
@@ -230,31 +256,39 @@ function uploadFiles(files) {
   const processFile = (file, callback) => {
     checkIfUploadRequired(file, (err, required) => {
       if (err) {
-        console.log(chalk.red('Error checking if upload is required:', err));
+        err._phase = 'check';
+        err._file = `${file.path.dir}/${file.path.base}`;
+        console.log(
+          chalk.red('checkIfUploadRequired failed for', file.path.base)
+        );
+        console.log(err); // keep native error object
         return callback(err);
       }
-      if (required) {
-        return uploadFile(file, (uploadErr) => {
-          if (uploadErr) {
-            console.log(chalk.red('uploadFile failed for', file.path.base));
-            return callback(uploadErr);
-          }
-          return callback();
-        });
+
+      if (!required) {
+        status.skipped++;
+        printProgress('Skipped', `${file.path.dir}/${file.path.base}`);
+        return callback();
       }
-      status.skipped++;
-      printProgress('Skipped', file.path.dir + '/' + file.path.base);
-      return callback();
+
+      uploadFile(file, (uploadErr) => {
+        if (uploadErr) {
+          uploadErr._phase = 'upload';
+          uploadErr._file = `${file.path.dir}/${file.path.base}`;
+          console.log(chalk.red('uploadFile failed for', file.path.base));
+          console.log(uploadErr); // keep native error object
+          return callback(uploadErr);
+        }
+        return callback();
+      });
     });
   };
 
   return new Promise((resolve, reject) => {
     Async.eachLimit(files, config.concurrentRequests, processFile, (err) => {
       if (err) {
-        console.log(
-          chalk.red('Error during file upload:'),
-          JSON.stringify(err, null, 2)
-        );
+        console.log(chalk.red('Error during file upload (bubbling up):'));
+        console.log(err); // don’t JSON.stringify
         return reject(err);
       }
       console.log('\n');
@@ -286,6 +320,9 @@ function printProgress(action, file) {
 function createInvalidation() {
   return new Promise((resolve, reject) => {
     if (!config.cloudFrontId) {
+      console.error(
+        '\nNo Cloudfront ID Found. Please check Site Configuration'
+      );
       return resolve();
     }
     console.log('\nCreating CloudFront invalidation...');
