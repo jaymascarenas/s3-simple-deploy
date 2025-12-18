@@ -314,7 +314,7 @@ function uploadFiles(files) {
           );
         });
 
-        if (failures.length > 0) {
+        if (failures.length > 10) {
           console.log(chalk.yellow(`...and ${failures.length - 10} more.`));
         }
       } else {

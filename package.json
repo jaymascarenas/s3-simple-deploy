@@ -1,6 +1,6 @@
 {
   "name": "s3-simple-deploy",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "Simple S3 Deploy",
   "main": "index.js",
   "scripts": {
