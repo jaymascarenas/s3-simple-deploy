@@ -253,16 +253,25 @@ function uploadFile(file, callback) {
 function uploadFiles(files) {
   status.total = files.length;
 
+  // Collect per-file failures without aborting the entire run
+  const failures = [];
+
+  const recordFailure = (err, file, phase) => {
+    const enriched = err || new Error('Unknown error');
+    enriched._phase = phase;
+    enriched._file = `${file.path.dir}/${file.path.base}`;
+    failures.push(enriched);
+
+    console.log(chalk.red(`${phase} failed for ${file.path.base}`));
+    console.log(enriched);
+  };
+
   const processFile = (file, callback) => {
     checkIfUploadRequired(file, (err, required) => {
       if (err) {
-        err._phase = 'check';
-        err._file = `${file.path.dir}/${file.path.base}`;
-        console.log(
-          chalk.red('checkIfUploadRequired failed for', file.path.base)
-        );
-        console.log(err); // keep native error object
-        return callback(err);
+        recordFailure(err, file, 'check');
+        // swallow error so eachLimit continues
+        return callback();
       }
 
       if (!required) {
@@ -273,26 +282,52 @@ function uploadFiles(files) {
 
       uploadFile(file, (uploadErr) => {
         if (uploadErr) {
-          uploadErr._phase = 'upload';
-          uploadErr._file = `${file.path.dir}/${file.path.base}`;
-          console.log(chalk.red('uploadFile failed for', file.path.base));
-          console.log(uploadErr); // keep native error object
-          return callback(uploadErr);
+          recordFailure(uploadErr, file, 'upload');
+          // swallow error so eachLimit continues
+          return callback();
         }
+
+        // uploadFile already increments status.uploaded + prints progress
         return callback();
       });
     });
   };
 
-  return new Promise((resolve, reject) => {
-    Async.eachLimit(files, config.concurrentRequests, processFile, (err) => {
-      if (err) {
-        console.log(chalk.red('Error during file upload (bubbling up):'));
-        console.log(err); // don’t JSON.stringify
-        return reject(err);
+  return new Promise((resolve) => {
+    Async.eachLimit(files, config.concurrentRequests, processFile, () => {
+      // eachLimit final callback err is meaningless here because we never pass errors up
+      if (failures.length) {
+        console.log(
+          chalk.yellow(
+            `\nUpload completed with ${failures.length} failure(s) out of ${files.length} files.`
+          )
+        );
+
+        // Optional: show first few failures as a quick summary
+        failures.slice(0, 10).forEach((e, i) => {
+          console.log(
+            chalk.yellow(
+              `${i + 1}. [${e._phase}] ${e._file} — ${e.name || 'Error'}: ${
+                e.message || String(e)
+              }`
+            )
+          );
+        });
+
+        if (failures.length > 0) {
+          console.log(chalk.yellow(`...and ${failures.length - 10} more.`));
+        }
+      } else {
+        console.log(chalk.green('\nUpload completed with no failures.'));
       }
-      console.log('\n');
-      resolve();
+
+      // Resolve with a report instead of rejecting
+      resolve({
+        uploaded: status.uploaded,
+        skipped: status.skipped,
+        total: status.total,
+        failures,
+      });
     });
   });
 }
@@ -325,7 +360,7 @@ function createInvalidation() {
       );
       return resolve();
     }
-    console.log('\nCreating CloudFront invalidation...');
+
     const params = {
       DistributionId: config.cloudFrontId,
       InvalidationBatch: {
